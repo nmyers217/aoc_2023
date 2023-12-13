@@ -1,3 +1,6 @@
+// I couldn't get deno to use a bigger heap size than 128mb for some reason, no matter what v8 flags i gave it
+// which was making this impossible, so i abandoned this and switched to python instead
+
 let input = `
 ???.### 1,1,3
 .??..??...?##. 1,1,3
@@ -6,10 +9,10 @@ let input = `
 ????.######..#####. 1,6,5
 ?###???????? 3,2,1
 `;
-// input = await Deno.readTextFile('./input.txt');
+input = await Deno.readTextFile('./input.txt');
 const lines = input.trim().split('\n');
 
-const rows = [];
+const rows: string[] = [];
 const groups = [];
 
 for (const line of lines) {
@@ -18,56 +21,91 @@ for (const line of lines) {
   groups.push(r.split(',').map(n => parseInt(n)));
 }
 
-const permutations = (s: string): string[] => {
-  if (!s) return [''];
-  const tail = permutations(s.slice(1));
-  if (s[0] === '.' || s[0] === '#') {
-    return tail.map(s2 => `${s[0]}${s2}`);
-  }
-  return [
-    ...tail.map(s2 => `.${s2}`),
-    ...tail.map(s2 => `#${s2}`),
-  ];
+const memo: Record<string, number> = {}
+
+const hash = (s: string, nums: number[]): string => {
+  return `${s} - ${nums.toString()}`;
 };
 
-const isValid = (s: string, groups: number[]): boolean => {
-  let [count, i, j] = [0, s.indexOf('#'), 0];
+const validCombos = (
+  s: string,
+  nums: number[],
+): number => {
+  const k = hash(s, nums);
+  if (memo[k]) return memo[k];
 
-  while (i !== -1) {
-    if (j >= groups.length) return false;
-    count = 0;
-    while (s[i] === '#') {
-      count++;
-      i++;
+  if (nums.length === 0) {
+    if (s.indexOf('#') >= 0) {
+      // The #'s haven't been fully consumed and the groups have, invalid
+      return 0;
+    } else{ 
+      return 1;
     }
-    if (count !== groups[j]) return false;
-    i = s.indexOf('#', i + 1);
-    j++;
   }
 
-  return j === groups.length;
-};
+  // Try to prune branches that have no chance
+  let damaged = nums.reduce((a, b) => a+b, 0);
+  for (const c of s) {
+    if (c === '#') damaged--;
+  }
+  if (damaged < 0) {
+    // Too many damaged already, so just prune
+    memo[k] = 0;
+    return 0;
+  };
+  for (const c of s) {
+    if (c === '?') damaged--;
+  }
+  if (damaged > 0) {
+    // Not enough unknowns, so just prune
+    memo[k] = 0;
+    return 0;
+  }
+
+  const n = nums[0];
+  let sum = 0;
+
+  for (let i = 0; i < s.length; i++) {
+    const longEnough = i+n <= s.length;
+    const groupNotEmpty = s.slice(i, i+n).split('').every(c => c !== '.');
+    const groupCanStart = i === 0 || s[i-1] !== '#';
+    const groupCanEnd = i+n === s.length || s[i+n] !== '#';
+
+    if (longEnough && groupNotEmpty && groupCanStart && groupCanEnd) {
+      sum += validCombos(s.slice(i+n+1), nums.slice(1));
+    }
+
+    if (s[i] === '#') break;
+  }
+
+  memo[k] = sum;
+  return memo[k];
+}
+
+const questions = (s: string): number =>
+  s.split('').filter(c => c === '?').length;
+
+const indexes = new Array(rows.length)
+  .fill(0)
+  .map((_, i) => i)
+  .sort((a, b) => questions(rows[a]) - questions(rows[b]));
 
 let p1 = 0;
-for (let i = 0; i < rows.length; i++) {
-  for (const perm of permutations(rows[i])) {
-    if (isValid(perm, groups[i])) p1 += 1;
-  }
+for (const i of indexes) {
+  p1 += validCombos(rows[i], groups[i]);
 }
-
 console.log(p1);
 
-let p2 = 0;
-for (let i = 0; i < rows.length; i++) {
+let remaining = rows.length //103;
+let p2 = 0//685603741556;
+for (const i of indexes) {
   let [row, group] = [rows[i], groups[i]];
   for (let j = 0; j < 4; j++) {
-    row += `?${row}`;
-    group = [...group, ...group];
+    row += `?${rows[i]}`;
+    group = [...group, ...groups[i]];
   }
-  // console.log(row, group)
-  for (const perm of permutations(row)) {
-    if (isValid(perm, group)) p2 += 1;
-  }
+  p2 += validCombos(row, group);
+  remaining--;
+  console.log(i, p2, remaining);
 }
-
 console.log(p2);

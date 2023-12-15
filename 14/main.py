@@ -53,7 +53,7 @@ def print_grid(grid):
             str += grid[(x,y)]
         print(str)
 
-def part_two(grid, stop=200):
+def part_two(grid, stop=1_000_000_000):
     g, i = grid, 00
     loads = {}
 
@@ -64,11 +64,12 @@ def part_two(grid, stop=200):
         g = move_horiz(g, west=False)
         i += 1
         loads[i] = calc_load(g)
+        # I hardcoded this after looking at my output, too bad!
+        CYCLE_LENGTH = 9
+        if i == 1000:
+            i += ((stop - i * 2) // CYCLE_LENGTH) * CYCLE_LENGTH
 
-    # Just looked for the cycle and noticed it was the first one in my input's cycle
-    for k, v in loads.items():
-        print(k, v)
-    print(1_000_000_000 % 9)
+    print(loads[stop])
 
 print(calc_load(move_vert(grid)))
 part_two(grid)

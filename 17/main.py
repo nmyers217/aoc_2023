@@ -17,21 +17,22 @@ for y,row in enumerate(grid):
     for x,n in enumerate(row):
         graph[x,y] = n
 
-def search(graph, dir, ultra=False):
+def search(graph, ultra=False):
     q = []
-    heapq.heappush(q, (0, 0,0, *dir, 0))
+    heapq.heappush(q, (0, (0,0), (1,0), 0))
+    heapq.heappush(q, (0, (0,0), (0,1), 0))
     seen = set()
     
     while q:
-        loss, x,y, dx,dy, moves = heapq.heappop(q)
+        loss, (x,y), (dx,dy), moves = heapq.heappop(q)
 
         if (x,y) == (W-1,H-1):
             if not ultra or moves >= 4:
                 return loss
 
-        if (x,y,dx,dy,moves) in seen:
+        if ((x,y), (dx,dy), moves) in seen:
             continue
-        seen.add((x,y,dx,dy,moves))
+        seen.add(((x,y), (dx,dy), moves))
 
         dirs = []
         if ultra:
@@ -53,9 +54,8 @@ def search(graph, dir, ultra=False):
                 continue
             moves2 = moves + 1 if (dx,dy) == (dx2,dy2) else 1
             loss2 = loss + n
-            heapq.heappush(q, (loss2, x2,y2, dx2,dy2, moves2))
+            heapq.heappush(q, (loss2, (x2,y2), (dx2,dy2), moves2))
 
-print(search(graph, (1,0)))
-print(min(search(graph, (1,0), ultra=True),
-          search(graph, (0,1), ultra=True)))
+print(search(graph))
+print(search(graph, ultra=True))
 

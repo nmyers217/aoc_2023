@@ -3,13 +3,6 @@ import heapq
 
 def parse_input():
     input = open('./input.txt').read()
-#     input = """
-# 111111111111
-# 999999999991
-# 999999999991
-# 999999999991
-# 999999999991
-#     """
     lines = input.strip().splitlines()
     result = []
     for line in lines:
@@ -33,7 +26,8 @@ def search(graph, dir, ultra=False):
         loss, x,y, dx,dy, moves = heapq.heappop(q)
 
         if (x,y) == (W-1,H-1):
-            return loss
+            if not ultra or moves >= 4:
+                return loss
 
         if (x,y,dx,dy,moves) in seen:
             continue
@@ -62,7 +56,6 @@ def search(graph, dir, ultra=False):
             heapq.heappush(q, (loss2, x2,y2, dx2,dy2, moves2))
 
 print(search(graph, (1,0)))
-# I HAVE NO IDEA WHY BUT I WAS OFF BY 2!??
-# not even going to bother debugging this today 🤮
 print(min(search(graph, (1,0), ultra=True),
-          search(graph, (0,1), ultra=True)) + 2)
+          search(graph, (0,1), ultra=True)))
+
